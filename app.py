@@ -8,6 +8,7 @@ from io import BytesIO
 import re
 import time
 import streamlit.components.v1 as components
+import json
 
 try:
     from streamlit_mic_recorder import mic_recorder
@@ -35,133 +36,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS - Optimized for speed and engagement
-st.markdown("""
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-    <style>
-      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-      :root {
-        --bg: #F5F7FF;
-        --surface: #FFFFFF;
-        --surface2: #EEF1FF;
-        --primary: #4361EE;
-        --primary-light: #EEF0FF;
-        --primary-dark: #2C46C9;
-        --accent-green: #22C55E;
-        --accent-green-light: #DCFCE7;
-        --accent-orange: #F97316;
-        --accent-orange-light: #FFF0E6;
-        --text: #0D0E1A;
-        --text2: #5A5E7A;
-        --text3: #9499B8;
-        --border: rgba(67,97,238,0.12);
-        --border2: rgba(67,97,238,0.2);
-        --shadow: 0 4px 20px rgba(67,97,238,0.10);
-        --shadow-sm: 0 2px 10px rgba(67,97,238,0.08);
-        --radius: 20px;
-        --radius-sm: 12px;
-        --nav-h: 76px;
-      }
-
-      body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; }
-
-      .app { width: 100%; max-width: 420px; min-height: 100vh; background: var(--bg); position: relative; display: flex; flex-direction: column; overflow: hidden; }
-
-      .screen { display: none; flex-direction: column; flex: 1; padding-bottom: calc(var(--nav-h) + 12px); overflow-y: auto; min-height: calc(100vh - var(--nav-h)); animation: fadeIn 0.25s ease; }
-      .screen.active { display: flex; }
-      @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-
-      .header { padding: 52px 24px 20px; display: flex; align-items: center; justify-content: space-between; }
-      .header-title { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--text); letter-spacing: -0.3px; }
-      .header-title span { color: var(--primary); }
-      .header-badge { background: var(--primary-light); color: var(--primary); font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: 100px; }
-
-      .speak-greeting { padding: 0 24px 24px; }
-      .speak-greeting p { font-size: 15px; color: var(--text2); line-height: 1.5; }
-
-      .ai-message-area { flex: 1; padding: 0 24px; display: flex; flex-direction: column; gap: 12px; min-height: 180px; }
-
-      .bubble-row { display: flex; gap: 10px; align-items: flex-end; animation: bubbleIn 0.3s cubic-bezier(0.34,1.56,0.64,1); }
-      @keyframes bubbleIn { from { opacity: 0; transform: scale(0.88) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-      .bubble-row.user { flex-direction: row-reverse; }
-
-      .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; }
-      .avatar.user-av { background: var(--surface2); }
-
-      .bubble { max-width: 76%; padding: 14px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; color: var(--text); position: relative; }
-      .bubble.ai { background: var(--surface); border-bottom-left-radius: 4px; box-shadow: var(--shadow-sm); }
-      .bubble.user { background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
-
-      .typing-dots { display: flex; gap: 4px; padding: 14px 16px; background: var(--surface); border-radius: 18px; border-bottom-left-radius: 4px; width: fit-content; box-shadow: var(--shadow-sm); }
-      .typing-dots span { width: 6px; height: 6px; background: var(--text3); border-radius: 50%; animation: dotBounce 1.2s infinite ease-in-out; }
-      .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-      .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-      @keyframes dotBounce { 0%,80%,100% { transform: translateY(0); opacity: 0.4; } 40% { transform: translateY(-5px); opacity: 1; } }
-
-      .mic-zone { padding: 28px 24px 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
-      .mic-ring { width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; user-select: none; }
-      .mic-ring::before, .mic-ring::after { content: ''; position: absolute; border-radius: 50%; border: 2px solid var(--primary); opacity: 0; transition: all 0.3s; }
-      .mic-ring::before { width: 130%; height: 130%; }
-      .mic-ring::after  { width: 160%; height: 160%; }
-      .mic-ring.listening::before { opacity: 0.2; animation: pulse1 1.2s infinite ease-out; }
-      .mic-ring.listening::after { opacity: 0.12; animation: pulse2 1.2s 0.3s infinite ease-out; }
-      @keyframes pulse1 { 0%,100% { transform: scale(1); opacity: 0.2; } 50% { transform: scale(1.05); opacity: 0.35; } }
-      @keyframes pulse2 { 0%,100% { transform: scale(1); opacity: 0.12; } 50% { transform: scale(1.08); opacity: 0.22; } }
-
-      .mic-btn { width: 100%; height: 100%; border-radius: 50%; background: var(--primary); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s, background 0.2s; box-shadow: 0 8px 32px rgba(67,97,238,0.35); }
-      .mic-btn:active { transform: scale(0.94); }
-      .mic-btn.listening { background: #D72B3F; box-shadow: 0 8px 32px rgba(215,43,63,0.35); }
-
-      .mic-label { font-size: 14px; color: var(--text2); text-align: center; font-weight: 400; letter-spacing: 0.1px; }
-      .mic-label strong { color: var(--primary); font-weight: 500; }
-
-      .secondary-actions { display: flex; gap: 10px; padding: 0 24px; margin-bottom: 8px; }
-      .sec-btn { flex: 1; padding: 11px 8px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--text2); cursor: pointer; text-align: center; transition: all 0.15s; font-weight: 500; }
-      .sec-btn:hover { border-color: var(--border2); background: var(--primary-light); color: var(--primary); }
-
-      .chat-messages { flex: 1; padding: 0 24px 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
-      .chat-input-row { padding: 12px 24px 16px; display: flex; gap: 10px; align-items: center; background: var(--bg); border-top: 1px solid var(--border); }
-      .chat-input { flex: 1; padding: 12px 16px; border-radius: 100px; border: 1.5px solid var(--border); background: var(--surface); font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); outline: none; transition: border-color 0.2s; }
-      .chat-input:focus { border-color: var(--primary); }
-
-      .learn-header { padding: 52px 24px 8px; }
-      .learn-header p { font-size: 14px; color: var(--text2); margin-top: 4px; }
-      .learn-section-label { padding: 20px 24px 10px; font-size: 12px; font-weight: 600; color: var(--text3); letter-spacing: 0.8px; text-transform: uppercase; }
-      .learn-cards { padding: 0 24px; display: flex; flex-direction: column; gap: 12px; }
-      .learn-card { background: var(--surface); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.2s; border: 1.5px solid transparent; }
-      .learn-card:hover { border-color: var(--border2); }
-      .learn-card.expanded { border-color: var(--primary); }
-
-      .progress-header { padding: 52px 24px 20px; }
-      .stats-grid { padding: 0 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-      .stat-card { background: var(--surface); border-radius: var(--radius); padding: 20px 18px; box-shadow: var(--shadow-sm); }
-
-      .streak-banner { margin: 20px 24px 0; background: linear-gradient(135deg, var(--primary) 0%, #7B5CF6 100%); border-radius: var(--radius); padding: 20px 22px; display: flex; align-items: center; gap: 16px; color: #fff; }
-
-      .settings-header { padding: 52px 24px 20px; }
-      .settings-section { padding: 0 24px 20px; }
-
-      .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 420px; height: var(--nav-h); background: var(--surface); border-top: 1px solid var(--border); display: flex; align-items: flex-start; padding-top: 10px; z-index: 100; backdrop-filter: blur(10px); }
-      .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 4px 0; transition: all 0.15s; border: none; background: transparent; font-family: 'DM Sans', sans-serif; }
-      .nav-icon { width: 40px; height: 32px; border-radius: 100px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-      .nav-item.active .nav-icon { background: var(--primary-light); }
-
-      .lang-pills { display: flex; gap: 8px; padding: 0 24px 20px; }
-      .lang-pill { padding: 7px 16px; border-radius: 100px; border: 1.5px solid var(--border); font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--text2); cursor: pointer; transition: all 0.15s; background: var(--surface); font-weight: 500; }
-      .lang-pill.selected { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
-
-      .state-label { text-align: center; font-size: 13px; font-weight: 500; color: var(--text3); min-height: 18px; letter-spacing: 0.2px; }
-
-      .waveform { display: flex; align-items: center; justify-content: center; gap: 4px; height: 32px; opacity: 0; transition: opacity 0.3s; }
-      .waveform.active { opacity: 1; }
-      .waveform span { width: 3px; background: #D72B3F; border-radius: 100px; animation: wave 0.8s ease-in-out infinite; height: 8px; }
-      @keyframes wave { 0%,100% { transform: scaleY(0.6); } 50% { transform: scaleY(1.4); } }
-
-      .screen-title { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--text); letter-spacing: -0.3px; }
-    </style>
-    """, unsafe_allow_html=True)
+# Note: demo UI will be rendered as a self-contained HTML component below.
 
 # Initialize session state
 if 'conversation' not in st.session_state:
@@ -214,32 +89,234 @@ with st.sidebar:
 # Main hero
 # If the user prefers the exact demo UI, render it via an isolated HTML component
 demo_ui = st.session_state.get("use_demo_ui", True)
+# Allow forcing the fully interactive native Streamlit UI when demo iframe isn't responsive
+if st.session_state.get('force_native'):
+    demo_ui = False
 if demo_ui:
-        demo_html = r"""
-<!doctype html>
-<html lang="en"> 
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>English Learning Assistant (Demo UI)</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-        <style>
-            /* Minimal reset so the component matches the app CSS already injected */
-            html,body{margin:0;padding:0;background:transparent}
-        </style>
-    </head>
-    <body>
-        <!-- Insert the full demo markup here. For brevity we reuse the original user HTML body only. -->
-        <div id="demo-root">
-            <div class="app">
-                <!-- The demo HTML structure is long; load it in the iframe to preserve exact look and behavior. -->
-            </div>
-        </div>
-        <script>
-            // Load full demo HTML into this iframe dynamically to keep source readable in Python.
-            const demo = `
+    # Show a small banner control so user can fall back to the native interactive UI
+    col1, col2 = st.columns([1,4])
+    with col1:
+        if st.button('Use interactive UI (fix issues)'):
+            st.session_state['force_native'] = True
+            st.experimental_rerun()
+    with col2:
+        st.markdown('')
+    # Allow injecting the full conversation history (reply + base64 audio) from Python into the demo iframe.
+    # This ensures the demo UI maintains conversation across Streamlit reruns
+    pending_from_py = st.session_state.get('pending_response')
+    conversation_history = st.session_state.get('conversation', [])
+    demo_html = r"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>English Learning Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+        --bg: #F5F7FF;
+        --surface: #FFFFFF;
+        --surface2: #EEF1FF;
+        --primary: #4361EE;
+        --primary-light: #EEF0FF;
+        --primary-dark: #2C46C9;
+        --accent-green: #22C55E;
+        --accent-green-light: #DCFCE7;
+        --accent-orange: #F97316;
+        --accent-orange-light: #FFF0E6;
+        --text: #0D0E1A;
+        --text2: #5A5E7A;
+        --text3: #9499B8;
+        --border: rgba(67,97,238,0.12);
+        --border2: rgba(67,97,238,0.2);
+        --shadow: 0 4px 20px rgba(67,97,238,0.10);
+        --shadow-sm: 0 2px 10px rgba(67,97,238,0.08);
+        --radius: 20px;
+        --radius-sm: 12px;
+        --nav-h: 76px;
+    }
+
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; }
+
+    .app { width: 100%; max-width: 420px; min-height: 100vh; background: var(--bg); position: relative; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ── Screens ── */
+    .screen { display: none; flex-direction: column; flex: 1; padding-bottom: calc(var(--nav-h) + 12px); overflow-y: auto; min-height: calc(100vh - var(--nav-h)); animation: fadeIn 0.25s ease; }
+    .screen.active { display: flex; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Header ── */
+    .header { padding: 52px 24px 20px; display: flex; align-items: center; justify-content: space-between; }
+    .header-title { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--text); letter-spacing: -0.3px; }
+    .header-title span { color: var(--primary); }
+    .header-badge { background: var(--primary-light); color: var(--primary); font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: 100px; }
+
+    /* ── SPEAK SCREEN ── */
+    .speak-greeting { padding: 0 24px 24px; }
+    .speak-greeting p { font-size: 15px; color: var(--text2); line-height: 1.5; }
+
+    .ai-message-area { flex: 1; padding: 0 24px; display: flex; flex-direction: column; gap: 12px; min-height: 180px; }
+
+    .bubble-row { display: flex; gap: 10px; align-items: flex-end; animation: bubbleIn 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes bubbleIn { from { opacity: 0; transform: scale(0.88) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+    .bubble-row.user { flex-direction: row-reverse; }
+
+    .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; }
+    .avatar.user-av { background: var(--surface2); }
+
+    .bubble { max-width: 76%; padding: 14px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; color: var(--text); position: relative; }
+    .bubble.ai { background: var(--surface); border-bottom-left-radius: 4px; box-shadow: var(--shadow-sm); }
+    .bubble.user { background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
+    .bubble .tip-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--accent-green); background: var(--accent-green-light); padding: 3px 8px; border-radius: 100px; margin-top: 8px; font-weight: 500; }
+    .bubble .tip-text { font-size: 13px; color: var(--text2); margin-top: 4px; line-height: 1.4; }
+
+    .typing-dots { display: flex; gap: 4px; padding: 14px 16px; background: var(--surface); border-radius: 18px; border-bottom-left-radius: 4px; width: fit-content; box-shadow: var(--shadow-sm); }
+    .typing-dots span { width: 6px; height: 6px; background: var(--text3); border-radius: 50%; animation: dotBounce 1.2s infinite ease-in-out; }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dotBounce { 0%,80%,100% { transform: translateY(0); opacity: 0.4; } 40% { transform: translateY(-5px); opacity: 1; } }
+
+    /* ── Mic Zone ── */
+    .mic-zone { padding: 28px 24px 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+
+    .mic-ring { width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; user-select: none; }
+    .mic-ring, .mic-btn { z-index: 9999; pointer-events: auto; }
+    .mic-ring::before, .mic-ring::after { content: ''; position: absolute; border-radius: 50%; border: 2px solid var(--primary); opacity: 0; transition: all 0.3s; }
+    .mic-ring::before { width: 130%; height: 130%; }
+    .mic-ring::after  { width: 160%; height: 160%; }
+
+    .mic-ring.listening::before { opacity: 0.2; animation: pulse1 1.2s infinite ease-out; }
+    .mic-ring.listening::after { opacity: 0.12; animation: pulse2 1.2s 0.3s infinite ease-out; }
+    @keyframes pulse1 { 0%,100% { transform: scale(1); opacity: 0.2; } 50% { transform: scale(1.05); opacity: 0.35; } }
+    @keyframes pulse2 { 0%,100% { transform: scale(1); opacity: 0.12; } 50% { transform: scale(1.08); opacity: 0.22; } }
+
+    .mic-btn { width: 100%; height: 100%; border-radius: 50%; background: var(--primary); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s, background 0.2s; box-shadow: 0 8px 32px rgba(67,97,238,0.35); }
+    .mic-btn:active { transform: scale(0.94); }
+    .mic-btn.listening { background: #D72B3F; box-shadow: 0 8px 32px rgba(215,43,63,0.35); }
+    .mic-btn svg { width: 36px; height: 36px; }
+
+    .mic-label { font-size: 14px; color: var(--text2); text-align: center; font-weight: 400; letter-spacing: 0.1px; }
+    .mic-label strong { color: var(--primary); font-weight: 500; }
+
+    .secondary-actions { display: flex; gap: 10px; padding: 0 24px; margin-bottom: 8px; }
+    .sec-btn { flex: 1; padding: 11px 8px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--text2); cursor: pointer; text-align: center; transition: all 0.15s; font-weight: 500; }
+    .sec-btn:hover { border-color: var(--border2); background: var(--primary-light); color: var(--primary); }
+
+    /* ── CHAT SCREEN ── */
+    .chat-messages { flex: 1; padding: 0 24px 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+    .chat-input-row { padding: 12px 24px 16px; display: flex; gap: 10px; align-items: center; background: var(--bg); border-top: 1px solid var(--border); }
+    .chat-input { flex: 1; padding: 12px 16px; border-radius: 100px; border: 1.5px solid var(--border); background: var(--surface); font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); outline: none; transition: border-color 0.2s; }
+    .chat-input:focus { border-color: var(--primary); }
+    .chat-input::placeholder { color: var(--text3); }
+    .chat-mic-btn { width: 44px; height: 44px; border-radius: 50%; background: var(--primary); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 14px rgba(67,97,238,0.3); transition: transform 0.15s; }
+    .chat-mic-btn:active { transform: scale(0.92); }
+
+    /* ── LEARN SCREEN ── */
+    .learn-header { padding: 52px 24px 8px; }
+    .learn-header p { font-size: 14px; color: var(--text2); margin-top: 4px; }
+    .learn-section-label { padding: 20px 24px 10px; font-size: 12px; font-weight: 600; color: var(--text3); letter-spacing: 0.8px; text-transform: uppercase; }
+    .learn-cards { padding: 0 24px; display: flex; flex-direction: column; gap: 12px; }
+    .learn-card { background: var(--surface); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.2s; border: 1.5px solid transparent; }
+    .learn-card:hover { border-color: var(--border2); }
+    .learn-card.expanded { border-color: var(--primary); }
+    .lc-header { display: flex; justify-content: space-between; align-items: center; }
+    .lc-label { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.6px; text-transform: uppercase; }
+    .lc-chevron { font-size: 18px; color: var(--text3); transition: transform 0.2s; }
+    .learn-card.expanded .lc-chevron { transform: rotate(180deg); }
+    .lc-user { font-size: 14px; color: var(--text2); margin-top: 8px; font-style: italic; }
+    .lc-correct { font-size: 16px; font-weight: 500; color: var(--text); margin-top: 10px; padding: 12px 14px; background: var(--primary-light); border-radius: var(--radius-sm); color: var(--primary-dark); }
+    .lc-tip { display: none; margin-top: 12px; padding: 12px 14px; background: var(--accent-orange-light); border-radius: var(--radius-sm); font-size: 13px; color: var(--accent-orange); line-height: 1.5; }
+    .learn-card.expanded .lc-tip { display: block; }
+    .lc-tip-icon { font-size: 14px; margin-right: 4px; }
+
+    /* ── PROGRESS SCREEN ── */
+    .progress-header { padding: 52px 24px 20px; }
+    .progress-header p { font-size: 14px; color: var(--text2); margin-top: 4px; }
+    .stats-grid { padding: 0 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat-card { background: var(--surface); border-radius: var(--radius); padding: 20px 18px; box-shadow: var(--shadow-sm); }
+    .stat-icon { font-size: 22px; margin-bottom: 10px; }
+    .stat-val { font-size: 28px; font-weight: 600; color: var(--text); letter-spacing: -1px; }
+    .stat-label { font-size: 12px; color: var(--text2); margin-top: 2px; font-weight: 400; }
+
+    .progress-section { padding: 20px 24px 0; }
+    .progress-section-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 12px; }
+    .word-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .word-chip { padding: 6px 14px; background: var(--primary-light); color: var(--primary); border-radius: 100px; font-size: 13px; font-weight: 500; }
+
+    .streak-banner { margin: 20px 24px 0; background: linear-gradient(135deg, var(--primary) 0%, #7B5CF6 100%); border-radius: var(--radius); padding: 20px 22px; display: flex; align-items: center; gap: 16px; color: #fff; }
+    .streak-num { font-size: 42px; font-weight: 700; line-height: 1; }
+    .streak-info p:first-child { font-size: 14px; font-weight: 500; opacity: 0.9; }
+    .streak-info p:last-child { font-size: 12px; opacity: 0.65; margin-top: 2px; }
+
+    /* ── SETTINGS SCREEN ── */
+    .settings-header { padding: 52px 24px 20px; }
+    .settings-section { padding: 0 24px 20px; }
+    .settings-section-label { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 10px; }
+    .settings-card { background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); }
+    .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); gap: 12px; }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row-info p:first-child { font-size: 15px; color: var(--text); font-weight: 400; }
+    .settings-row-info p:last-child { font-size: 12px; color: var(--text3); margin-top: 2px; }
+    .toggle { width: 46px; height: 26px; background: var(--border2); border-radius: 100px; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; border: none; }
+    .toggle.on { background: var(--primary); }
+    .toggle::after { content: ''; position: absolute; width: 20px; height: 20px; border-radius: 50%; background: #fff; top: 3px; left: 3px; transition: transform 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+    .toggle.on::after { transform: translateX(20px); }
+
+    .level-selector { display: flex; gap: 8px; }
+    .level-opt { flex: 1; padding: 10px 8px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: transparent; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text2); cursor: pointer; text-align: center; transition: all 0.15s; font-weight: 500; }
+    .level-opt.selected { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+
+    .speed-slider-row { padding: 16px 20px; }
+    .speed-slider-row label { font-size: 15px; color: var(--text); display: block; margin-bottom: 12px; }
+    .speed-slider-row input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer; }
+    .speed-ticks { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+    /* ── Bottom Nav ── */
+    .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 420px; height: var(--nav-h); background: var(--surface); border-top: 1px solid var(--border); display: flex; align-items: flex-start; padding-top: 10px; z-index: 100; backdrop-filter: blur(10px); }
+    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 4px 0; transition: all 0.15s; border: none; background: transparent; font-family: 'DM Sans', sans-serif; }
+    .nav-icon { width: 40px; height: 32px; border-radius: 100px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .nav-item.active .nav-icon { background: var(--primary-light); }
+    .nav-icon svg { width: 20px; height: 20px; stroke: var(--text3); transition: stroke 0.2s; }
+    .nav-item.active .nav-icon svg { stroke: var(--primary); }
+    .nav-label { font-size: 11px; color: var(--text3); font-weight: 400; transition: color 0.2s; }
+    .nav-item.active .nav-label { color: var(--primary); font-weight: 500; }
+
+    /* Language selector pills */
+    .lang-pills { display: flex; gap: 8px; padding: 0 24px 20px; }
+    .lang-pill { padding: 7px 16px; border-radius: 100px; border: 1.5px solid var(--border); font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--text2); cursor: pointer; transition: all 0.15s; background: var(--surface); font-weight: 500; }
+    .lang-pill.selected { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+
+    /* State label */
+    .state-label { text-align: center; font-size: 13px; font-weight: 500; color: var(--text3); min-height: 18px; letter-spacing: 0.2px; }
+    .state-label.listening { color: #D72B3F; }
+    .state-label.thinking { color: var(--primary); }
+
+    /* Waveform */
+    .waveform { display: flex; align-items: center; justify-content: center; gap: 4px; height: 32px; opacity: 0; transition: opacity 0.3s; }
+    .waveform.active { opacity: 1; }
+    .waveform span { width: 3px; background: #D72B3F; border-radius: 100px; animation: wave 0.8s ease-in-out infinite; height: 8px; }
+    .waveform span:nth-child(1) { animation-delay: 0s; }
+    .waveform span:nth-child(2) { animation-delay: 0.1s; height: 16px; }
+    .waveform span:nth-child(3) { animation-delay: 0.2s; height: 24px; }
+    .waveform span:nth-child(4) { animation-delay: 0.15s; height: 20px; }
+    .waveform span:nth-child(5) { animation-delay: 0.05s; height: 14px; }
+    .waveform span:nth-child(6) { animation-delay: 0.25s; height: 8px; }
+    @keyframes wave { 0%,100% { transform: scaleY(0.6); } 50% { transform: scaleY(1.4); } }
+
+    /* Header DM serif */
+    .screen-title { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--text); letter-spacing: -0.3px; }
+</style>
+</head>
+<body>
 <div class="app">
+
+    <!-- ══ SPEAK SCREEN ══ -->
     <div class="screen active" id="screen-speak">
         <div class="header">
             <div class="header-title">Speak<span>AI</span></div>
@@ -250,9 +327,9 @@ if demo_ui:
         </div>
 
         <div class="lang-pills">
-            <button class="lang-pill selected">Conversation</button>
-            <button class="lang-pill">Interview</button>
-            <button class="lang-pill">Storytelling</button>
+            <button class="lang-pill selected" onclick="selectLang(this,'Conversation')">Conversation</button>
+            <button class="lang-pill" onclick="selectLang(this,'Interview')">Interview</button>
+            <button class="lang-pill" onclick="selectLang(this,'Story')">Storytelling</button>
         </div>
 
         <div class="ai-message-area" id="ai-area">
@@ -272,7 +349,7 @@ if demo_ui:
             </div>
             <p class="state-label" id="state-label">Tap the mic to start speaking</p>
             <div class="mic-ring" id="mic-ring">
-                <button class="mic-btn" id="mic-btn" aria-label="Toggle microphone">
+                <button class="mic-btn" id="mic-btn" onclick="toggleMic()" aria-label="Toggle microphone">
                     <svg id="mic-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
                         <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
@@ -283,22 +360,647 @@ if demo_ui:
         </div>
 
         <div class="secondary-actions">
-            <button class="sec-btn" onclick="document.getElementById('ai-area').innerHTML = '<div class=\'bubble-row\'><div class=\'avatar\'>🤖</div><div class=\'bubble ai\'>Chat cleared! Ready when you are. Tap the mic and speak naturally.</div></div>'">Clear chat</button>
+            <button class="sec-btn" onclick="clearChat()">Clear chat</button>
             <button class="sec-btn" onclick="switchTo('screen-chat')">Type instead</button>
         </div>
     </div>
-    <!-- Simplified other screens omitted for brevity; they match the user's structure when expanded -->
-</div>`;
 
-            // Append the demo HTML and inject the large CSS from the Streamlit page so styles match
-            const container = document.getElementById('demo-root');
-            container.innerHTML = demo;
-            // Reuse the parent's CSS rules (injected by Streamlit) automatically apply inside this component.
-        </script>
-    </body>
+    <!-- ══ CHAT SCREEN ══ -->
+    <div class="screen" id="screen-chat">
+        <div class="header">
+            <div class="screen-title">Chat</div>
+            <div class="header-badge">Active</div>
+        </div>
+
+        <div class="chat-messages" id="chat-area">
+            <div class="bubble-row">
+                <div class="avatar">🤖</div>
+                <div class="bubble ai">Hello! Type anything — English, Urdu, or mixed. I'll always reply in simple English and give you one helpful tip.</div>
+            </div>
+            <div class="bubble-row user">
+                <div class="avatar user-av">👤</div>
+                <div class="bubble user">Main kal school nahi gaya tha.</div>
+            </div>
+            <div class="bubble-row">
+                <div class="avatar">🤖</div>
+                <div class="bubble ai">
+                    I didn't go to school yesterday.
+                    <div class="tip-tag">💡 Grammar tip</div>
+                    <div class="tip-text">Use "didn't" + base verb for past negatives. "Nahi gaya" = "didn't go"</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input-row">
+            <input class="chat-input" id="chat-input" type="text" placeholder="Type in English or Urdu…" onkeydown="handleChatKey(event)">
+            <button class="chat-mic-btn" onclick="switchTo('screen-speak')" aria-label="Voice mode">
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+                    <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="22"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- ══ LEARN SCREEN ══ -->
+    <div class="screen" id="screen-learn">
+        <div class="learn-header">
+            <div class="screen-title">Learning Cards</div>
+            <p>Tap any card to see the correction and tip.</p>
+        </div>
+
+        <div class="learn-section-label">Today's corrections</div>
+        <div class="learn-cards">
+
+            <div class="learn-card" onclick="toggleCard(this)">
+                <div class="lc-header">
+                    <div class="lc-label">Past Tense</div>
+                    <div class="lc-chevron">⌄</div>
+                </div>
+                <div class="lc-user">"He go yesterday school."</div>
+                <div class="lc-correct">✓ He went to school yesterday.</div>
+                <div class="lc-tip"><span class="lc-tip-icon">💡</span> Use past tense "went" for completed actions. Word order: Subject → Verb → Object → Time.</div>
+            </div>
+
+            <div class="learn-card" onclick="toggleCard(this)">
+                <div class="lc-header">
+                    <div class="lc-label">Articles</div>
+                    <div class="lc-chevron">⌄</div>
+                </div>
+                <div class="lc-user">"I want eat apple."</div>
+                <div class="lc-correct">✓ I want to eat an apple.</div>
+                <div class="lc-tip"><span class="lc-tip-icon">💡</span> "An" goes before vowel sounds (a, e, i, o, u). "Want to eat" — always use "to" after "want".</div>
+            </div>
+
+            <div class="learn-card" onclick="toggleCard(this)">
+                <div class="lc-header">
+                    <div class="lc-label">Prepositions</div>
+                    <div class="lc-chevron">⌄</div>
+                </div>
+                <div class="lc-user">"I am living in Pakistan since 5 years."</div>
+                <div class="lc-correct">✓ I have been living in Pakistan for 5 years.</div>
+                <div class="lc-tip"><span class="lc-tip-icon">💡</span> Use "for" with durations (5 years, 2 months). Use "since" with start points (since 2019).</div>
+            </div>
+
+            <div class="learn-card" onclick="toggleCard(this)">
+                <div class="lc-header">
+                    <div class="lc-label">Vocabulary</div>
+                    <div class="lc-chevron">⌄</div>
+                </div>
+                <div class="lc-user">"This movie was very much good."</div>
+                <div class="lc-correct">✓ This movie was really good.</div>
+                <div class="lc-tip"><span class="lc-tip-icon">💡</span> Use "really" or "very" — not "very much" before adjectives. "Very much" works with verbs: "I liked it very much."</div>
+            </div>
+
+        </div>
+
+        <div style="height: 16px;"></div>
+    </div>
+
+    <!-- ══ PROGRESS SCREEN ══ -->
+    <div class="screen" id="screen-progress">
+        <div class="progress-header">
+            <div class="screen-title">Your Progress</div>
+            <p>Keep going — every conversation counts.</p>
+        </div>
+
+        <div class="streak-banner">
+            <div class="streak-num">🔥 7</div>
+            <div class="streak-info">
+                <p>Day streak!</p>
+                <p>You're on fire. Don't break the chain.</p>
+            </div>
+        </div>
+
+        <div class="stats-grid" style="margin-top: 16px;">
+            <div class="stat-card">
+                <div class="stat-icon">⏱</div>
+                <div class="stat-val">48</div>
+                <div class="stat-label">Minutes spoken</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📘</div>
+                <div class="stat-val">34</div>
+                <div class="stat-label">Words learned</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">💬</div>
+                <div class="stat-val">12</div>
+                <div class="stat-label">Conversations</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-val">89%</div>
+                <div class="stat-label">Accuracy today</div>
+            </div>
+        </div>
+
+        <div class="progress-section">
+            <div class="progress-section-title">Words you've learned</div>
+            <div class="word-chips">
+                <div class="word-chip">therefore</div>
+                <div class="word-chip">although</div>
+                <div class="word-chip">manage</div>
+                <div class="word-chip">probably</div>
+                <div class="word-chip">definitely</div>
+                <div class="word-chip">recently</div>
+                <div class="word-chip">achieve</div>
+                <div class="word-chip">improve</div>
+            </div>
+        </div>
+
+        <div class="progress-section" style="padding-top: 20px;">
+            <div class="progress-section-title">Common mistakes to fix</div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="background: var(--surface); border-radius: var(--radius-sm); padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-size: 14px; color: var(--text); font-weight: 500;">Past tense errors</div>
+                        <div style="font-size: 12px; color: var(--text3); margin-top: 2px;">go → went, come → came</div>
+                    </div>
+                    <div style="font-size: 11px; background: var(--accent-orange-light); color: var(--accent-orange); padding: 4px 10px; border-radius: 100px; font-weight: 600;">5 times</div>
+                </div>
+                <div style="background: var(--surface); border-radius: var(--radius-sm); padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-size: 14px; color: var(--text); font-weight: 500;">Article usage</div>
+                        <div style="font-size: 12px; color: var(--text3); margin-top: 2px;">a / an / the</div>
+                    </div>
+                    <div style="font-size: 11px; background: var(--accent-orange-light); color: var(--accent-orange); padding: 4px 10px; border-radius: 100px; font-weight: 600;">3 times</div>
+                </div>
+            </div>
+        </div>
+        <div style="height: 16px;"></div>
+    </div>
+
+    <!-- ══ SETTINGS SCREEN ══ -->
+    <div class="screen" id="screen-settings">
+        <div class="settings-header">
+            <div class="screen-title">Settings</div>
+        </div>
+
+        <div class="settings-section">
+            <div class="settings-section-label">Language</div>
+            <div class="settings-card">
+                <div class="settings-row">
+                    <div class="settings-row-info">
+                        <p>Urdu support</p>
+                        <p>Mix Urdu & English freely</p>
+                    </div>
+                    <button class="toggle on" onclick="this.classList.toggle('on')" aria-label="Toggle Urdu support"></button>
+                </div>
+                <div class="settings-row">
+                    <div class="settings-row-info">
+                        <p>Roman Urdu</p>
+                        <p>Allow Urdu written in English letters</p>
+                    </div>
+                    <button class="toggle on" onclick="this.classList.toggle('on')" aria-label="Toggle Roman Urdu"></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <div class="settings-section-label">Voice</div>
+            <div class="settings-card">
+                <div class="speed-slider-row">
+                    <label>AI voice speed</label>
+                    <input type="range" min="1" max="3" value="2" step="1">
+                    <div class="speed-ticks"><span>Slow</span><span>Normal</span><span>Fast</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <div class="settings-section-label">Learning level</div>
+            <div class="level-selector">
+                <button class="level-opt selected" onclick="selectLevel(this)">Beginner</button>
+                <button class="level-opt" onclick="selectLevel(this)">Intermediate</button>
+                <button class="level-opt" onclick="selectLevel(this)">Advanced</button>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <div class="settings-section-label">Notifications</div>
+            <div class="settings-card">
+                <div class="settings-row">
+                    <div class="settings-row-info">
+                        <p>Daily reminder</p>
+                        <p>Remind me to practice every day</p>
+                    </div>
+                    <button class="toggle on" onclick="this.classList.toggle('on')" aria-label="Toggle daily reminder"></button>
+                </div>
+                <div class="settings-row">
+                    <div class="settings-row-info">
+                        <p>Streak alerts</p>
+                        <p>Don't let me break my streak</p>
+                    </div>
+                    <button class="toggle" onclick="this.classList.toggle('on')" aria-label="Toggle streak alerts"></button>
+                </div>
+            </div>
+        </div>
+
+        <div style="height: 16px;"></div>
+    </div>
+
+    <!-- ══ Bottom Navigation ══ -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" onclick="switchTo('screen-speak', this)" aria-label="Speak">
+            <div class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="22"/>
+                </svg>
+            </div>
+            <span class="nav-label">Speak</span>
+        </button>
+        <button class="nav-item" onclick="switchTo('screen-chat', this)" aria-label="Chat">
+            <div class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+            </div>
+            <span class="nav-label">Chat</span>
+        </button>
+        <button class="nav-item" onclick="switchTo('screen-learn', this)" aria-label="Learn">
+            <div class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+            </div>
+            <span class="nav-label">Learn</span>
+        </button>
+        <button class="nav-item" onclick="switchTo('screen-progress', this)" aria-label="Progress">
+            <div class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/>
+                    <line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+            </div>
+            <span class="nav-label">Progress</span>
+        </button>
+        <button class="nav-item" onclick="switchTo('screen-settings', this)" aria-label="Settings">
+            <div class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+            </div>
+            <span class="nav-label">Settings</span>
+        </button>
+    </nav>
+
+</div>
+
+<script>
+let micActive = false;
+let micTimer = null;
+const PENDING_FROM_PY = __PENDING_RESPONSE__;
+const CONVERSATION_HISTORY = __CONVERSATION_HISTORY__;
+
+function renderConversationHistory(history) {
+    if (!history || !Array.isArray(history)) return;
+    const area = document.getElementById('ai-area');
+    
+    history.forEach(exchange => {
+        // User bubble
+        if (exchange.user) {
+            const userRow = document.createElement('div');
+            userRow.className = 'bubble-row user';
+            userRow.innerHTML = `<div class="avatar user-av">👤</div><div class="bubble user">${exchange.user}</div>`;
+            area.appendChild(userRow);
+        }
+        
+        // AI bubble
+        if (exchange.assistant) {
+            const aiRow = document.createElement('div');
+            aiRow.className = 'bubble-row';
+            aiRow.innerHTML = `<div class="avatar">🤖</div><div class="bubble ai">${exchange.assistant}</div>`;
+            area.appendChild(aiRow);
+        }
+    });
+    
+    area.scrollTop = area.scrollHeight;
+}
+
+function addAIReplyFromPython(incoming) {
+    if (!incoming) return;
+    try {
+        const area = document.getElementById('ai-area');
+        const row = document.createElement('div');
+        row.className = 'bubble-row';
+        const tipHTML = incoming.tip ? `<div class="tip-tag">💡 Tip</div><div class="tip-text">${incoming.tip}</div>` : '';
+        const replyText = incoming.reply || incoming.reply_text || '';
+        row.innerHTML = `<div class="avatar">🤖</div><div class="bubble ai">${replyText}${tipHTML}</div>`;
+        area.appendChild(row);
+        area.scrollTop = area.scrollHeight;
+        if (incoming.audio_b64) {
+            try {
+                const audio = new Audio('data:audio/mpeg;base64,' + incoming.audio_b64);
+                audio.play().catch(()=>console.warn('Audio playback blocked'));
+            } catch (e) { console.warn('playback failed', e); }
+        }
+    } catch (e) { console.warn('addAIReplyFromPython failed', e); }
+}
+
+function addUserBubble(text) {
+    if (!text) return;
+    const area = document.getElementById('ai-area');
+    const userRow = document.createElement('div');
+    userRow.className = 'bubble-row user';
+    userRow.innerHTML = `<div class="avatar user-av">👤</div><div class="bubble user">${text}</div>`;
+    area.appendChild(userRow);
+    area.scrollTop = area.scrollHeight;
+}
+
+const demoReplies = [
+    { reply: "That sounds great! Can you tell me more about it?", tip: null },
+    { reply: "I understand! In English you can also say: 'That's really interesting.'", tip: "Replace 'bahut acha' with 'very interesting' or 'quite fascinating.'" },
+    { reply: "Good effort! Let's keep going — you're improving fast.", tip: null },
+    { reply: "I see what you mean! Try saying: 'I was not able to come yesterday.'", tip: "Use 'was not able to' for past inability instead of 'could not came.'" },
+];
+
+function switchTo(screenId, navItem) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+    if (navItem) {
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        navItem.classList.add('active');
+    } else {
+        const idx = ['screen-speak','screen-chat','screen-learn','screen-progress','screen-settings'].indexOf(screenId);
+        document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===idx));
+    }
+}
+
+function toggleMic() {
+    micActive = !micActive;
+    const btn = document.getElementById('mic-btn');
+    const ring = document.getElementById('mic-ring');
+    const label = document.getElementById('state-label');
+    const waveform = document.getElementById('waveform');
+
+    if (micActive) {
+        btn.classList.add('listening');
+        ring.classList.add('listening');
+        label.textContent = 'Listening…';
+        label.className = 'state-label listening';
+        waveform.classList.add('active');
+        startRecognition();
+    } else {
+        btn.classList.remove('listening');
+        ring.classList.remove('listening');
+        waveform.classList.remove('active');
+        label.textContent = 'Thinking…';
+        label.className = 'state-label thinking';
+        stopRecognition();
+    }
+}
+
+let recognition = null;
+function startRecognition() {
+    const label = document.getElementById('state-label');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        label.textContent = 'Microphone not supported in this browser';
+        label.className = 'state-label';
+        return;
+    }
+    recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = function(event) {
+        const text = event.results[0][0].transcript;
+        addUserBubble(text);
+        // send transcript to Streamlit (parent) using streamlit-aware wrapper
+        try { window.parent.postMessage({isStreamlitMessage: true, type: 'transcript', text: text}, '*'); } catch (e) { console.warn('postMessage failed', e); }
+    };
+    recognition.onerror = function(e) {
+        console && console.warn && console.warn('recognition error', e);
+        try { window.parent.postMessage({isStreamlitMessage: true, type: 'transcript', text: ''}, '*'); } catch (e) {}
+    };
+    recognition.onend = function() {
+        // update UI to thinking state if still showing
+        const label = document.getElementById('state-label');
+        label.textContent = 'Thinking…';
+        label.className = 'state-label thinking';
+        // recognition will be stopped and the Python side will send back the AI reply
+    };
+    recognition.start();
+}
+
+function stopRecognition() {
+    if (recognition) {
+        try { recognition.stop(); } catch (e) {}
+        recognition = null;
+    }
+}
+
+function addAIReply() {
+    const area = document.getElementById('ai-area');
+    const r = demoReplies[Math.floor(Math.random() * demoReplies.length)];
+
+    // typing indicator
+    const typingRow = document.createElement('div');
+    typingRow.className = 'bubble-row';
+    typingRow.innerHTML = `<div class="avatar">🤖</div><div class="typing-dots"><span></span><span></span><span></span></div>`;
+    area.appendChild(typingRow);
+    area.scrollTop = area.scrollHeight;
+
+    setTimeout(() => {
+        typingRow.remove();
+        const row = document.createElement('div');
+        row.className = 'bubble-row';
+        let tipHTML = r.tip ? `<div class="tip-tag">💡 Tip</div><div class="tip-text">${r.tip}</div>` : '';
+        row.innerHTML = `<div class="avatar">🤖</div><div class="bubble ai">${r.reply}${tipHTML}</div>`;
+        area.appendChild(row);
+        area.scrollTop = area.scrollHeight;
+    }, 1000);
+}
+
+function clearChat() {
+    const area = document.getElementById('ai-area');
+    area.innerHTML = `<div class="bubble-row"><div class="avatar">🤖</div><div class="bubble ai">Chat cleared! Ready when you are. Tap the mic and speak naturally.</div></div>`;
+}
+
+function selectLang(el, mode) {
+    document.querySelectorAll('.lang-pill').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+}
+
+function selectLevel(el) {
+    document.querySelectorAll('.level-opt').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+}
+
+function toggleCard(card) {
+    card.classList.toggle('expanded');
+}
+
+function handleChatKey(e) {
+    if (e.key === 'Enter') sendChatMessage();
+}
+
+function sendChatMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    const area = document.getElementById('chat-area');
+
+    // user bubble
+    const userRow = document.createElement('div');
+    userRow.className = 'bubble-row user';
+    userRow.innerHTML = `<div class="avatar user-av">👤</div><div class="bubble user">${text}</div>`;
+    area.appendChild(userRow);
+
+    // typing
+    const typingRow = document.createElement('div');
+    typingRow.className = 'bubble-row';
+    typingRow.innerHTML = `<div class="avatar">🤖</div><div class="typing-dots"><span></span><span></span><span></span></div>`;
+    area.appendChild(typingRow);
+    area.scrollTop = area.scrollHeight;
+
+    // send to Python for a real reply
+    try {
+        window.parent.postMessage({isStreamlitMessage: true, type: 'chat', text: text}, '*');
+    } catch (e) {
+        console && console.warn && console.warn('chat postMessage failed', e);
+        setTimeout(() => {
+            typingRow.remove();
+            const r = demoReplies[Math.floor(Math.random() * demoReplies.length)];
+            const aiRow = document.createElement('div');
+            aiRow.className = 'bubble-row';
+            let tipHTML = r.tip ? `<div class="tip-tag">💡 Tip</div><div class="tip-text">${r.tip}</div>` : '';
+            aiRow.innerHTML = `<div class="avatar">🤖</div><div class="bubble ai">${r.reply}${tipHTML}</div>`;
+            area.appendChild(aiRow);
+            area.scrollTop = area.scrollHeight;
+        }, 1200);
+    }
+}
+
+// Ensure mic button is bound even if inline handlers fail
+try {
+    const _btn = document.getElementById('mic-btn');
+    if (_btn) {
+        _btn.removeAttribute('onclick');
+        _btn.addEventListener('click', toggleMic);
+    }
+} catch (e) {
+    console && console.warn && console.warn('mic binding failed', e);
+}
+
+// Load conversation history first
+try { 
+    if (typeof CONVERSATION_HISTORY !== 'undefined' && CONVERSATION_HISTORY && Array.isArray(CONVERSATION_HISTORY)) { 
+        renderConversationHistory(CONVERSATION_HISTORY); 
+    } 
+} catch(e) { 
+    console && console.warn && console.warn('failed loading conversation history', e); 
+}
+
+// If Python provided a pending response when rendering, show it now
+try { if (typeof PENDING_FROM_PY !== 'undefined' && PENDING_FROM_PY) { addAIReplyFromPython(PENDING_FROM_PY); } } catch(e) { console && console.warn && console.warn('failed injecting python reply', e); }
+
+// Ping parent so Python knows the iframe is ready (debugging)
+try { window.parent.postMessage({isStreamlitMessage: true, type: 'ping'}, '*'); } catch(e) {}
+</script>
+</body>
 </html>
-        """
-        components.html(demo_html, height=820, scrolling=True)
+    """
+    # Inject any pending response (from Python) into the demo HTML so the iframe can play it back.
+    # Also inject the conversation history to maintain state across reruns
+    try:
+        injected_data = json.dumps(pending_from_py) if pending_from_py else 'null'
+        # Create a sanitized conversation history (exclude sensitive data)
+        sanitized_history = []
+        for exchange in conversation_history[-10:]:  # Keep last 10 exchanges
+            sanitized_history.append({
+                'user': exchange.get('user', ''),
+                'assistant': exchange.get('assistant', '')
+            })
+        history_json = json.dumps(sanitized_history)
+        
+        print('DEBUG: Attempting to inject PENDING_FROM_PY:', injected_data[:200])
+        print('DEBUG: Injecting conversation history with', len(sanitized_history), 'exchanges')
+        
+        demo_html_filled = demo_html.replace(
+            'const PENDING_FROM_PY = __PENDING_RESPONSE__;', 
+            f'const PENDING_FROM_PY = {injected_data};'
+        )
+        demo_html_filled = demo_html_filled.replace(
+            'const CONVERSATION_HISTORY = __CONVERSATION_HISTORY__;',
+            f'const CONVERSATION_HISTORY = {history_json};'
+        )
+        
+        if 'const PENDING_FROM_PY = __PENDING_RESPONSE__;' in demo_html:
+            print('DEBUG: Placeholder found in demo_html')
+        if 'const CONVERSATION_HISTORY = __CONVERSATION_HISTORY__;' in demo_html:
+            print('DEBUG: Conversation history placeholder found in demo_html')
+    except Exception as e:
+        print('DEBUG: Exception during injection:', str(e))
+        demo_html_filled = demo_html
+
+    result = components.html(demo_html_filled, height=820, scrolling=True)
+    # Debug print
+    try:
+        print('COMPONENTS.HTML returned:', result)
+    except Exception:
+        pass
+
+    # Track whether iframe has ever communicated successfully. If not, auto-fallback
+    # to the native Streamlit UI after a few attempts so the app remains functional.
+    if not st.session_state.get('iframe_communicated'):
+        st.session_state['iframe_attempts'] = st.session_state.get('iframe_attempts', 0) + 1
+        if st.session_state['iframe_attempts'] >= 3:
+            st.warning('Demo iframe did not connect — switching to the native interactive UI for reliability.')
+            st.session_state['force_native'] = True
+            st.experimental_rerun()
+    # When the iframe posts a message (via window.parent.postMessage), Streamlit returns it
+    # as the `result` value on the next run. Expect a dict-like object with {'type':'transcript'|'chat','text':...}
+    if result:
+        try:
+            data = result if not isinstance(result, str) else json.loads(result)
+        except Exception:
+            data = result
+
+        # Support wrapped messages from the iframe: look for direct fields or payload wrapper
+        if isinstance(data, dict):
+            # print for debugging
+            print('Received component message:', data)
+        if isinstance(data, dict) and ((data.get('type') in ('transcript', 'chat')) or data.get('isStreamlitMessage') or data.get('streamlitMessage')):
+            # extract transcript flexibly
+            transcript = ''
+            if data.get('text'):
+                transcript = data.get('text', '').strip()
+            elif data.get('payload') and isinstance(data.get('payload'), dict):
+                transcript = data.get('payload', {}).get('text', '').strip()
+            elif data.get('payload') and isinstance(data.get('payload'), str):
+                transcript = data.get('payload', '').strip()
+            elif data.get('message'):
+                transcript = data.get('message', '').strip()
+            if transcript:
+                # mark iframe as communicating
+                st.session_state['iframe_communicated'] = True
+                # Enqueue the transcript in session_state; it will be processed after
+                # `process_user_text` is defined later in this script run.
+                st.session_state['incoming_transcript'] = transcript
+                st.session_state['pending_response'] = None
+                st.experimental_rerun()
+
+    # Clear the pending response after rendering so it doesn't persist across runs
+    try:
+        st.session_state['pending_response'] = None
+    except Exception:
+        pass
+
+    # If not in demo mode anymore OR if we got a successful response, continue to native UI rendering
+    # This allows responses to be displayed even if demo iframe injection fails
+    if not st.session_state.get('iframe_communicated') or st.session_state.get('force_native'):
+        # Continue to native UI rendering below
+        pass
+    else:
         st.stop()
 
 # else: render the original Streamlit UI below (kept for advanced integration)
@@ -984,6 +1686,10 @@ def update_session_settings_from_screen():
 def process_user_text(user_text: str):
     if not user_text or not user_text.strip():
         return
+    print('DEBUG: process_user_text called with:', user_text[:200])
+    print('DEBUG: selected_model:', st.session_state.get('selected_model'))
+    print('DEBUG: groq_key present:', bool(os.getenv('GROQ_API_KEY') or globals().get('groq_key')))
+    print('DEBUG: gemini_key present:', bool(os.getenv('GEMINI_API_KEY') or globals().get('gemini_key')))
 
     update_session_settings_from_screen()
     recent_context = build_recent_context(st.session_state.conversation, limit=3)
@@ -998,6 +1704,7 @@ def process_user_text(user_text: str):
             st.session_state.learning_mode,
             st.session_state.current_roleplay,
         )
+        print('DEBUG: Groq response (raw):', str(response)[:300], 'resp_time:', resp_time)
     else:
         start = time.time()
         response = call_gemini(
@@ -1010,12 +1717,18 @@ def process_user_text(user_text: str):
             st.session_state.current_roleplay,
         )
         resp_time = time.time() - start
+        print('DEBUG: Gemini response (raw):', str(response)[:300], 'resp_time:', resp_time)
 
     response = add_natural_followup(user_text, response)
     st.session_state.response_time = resp_time
     st.session_state.last_transcript = user_text
     st.session_state.last_spoken_reply = response
-    st.session_state.last_voice_audio = speech_to_audio_bytes(response)
+    print('DEBUG: stored last_spoken_reply:', response[:200])
+    
+    audio_bytes = speech_to_audio_bytes(response)
+    print('DEBUG: speech_to_audio_bytes returned:', 'bytes' if audio_bytes else 'None')
+    st.session_state.last_voice_audio = audio_bytes
+    
     st.session_state.conversation.append({
         "user": user_text,
         "assistant": response,
@@ -1023,6 +1736,29 @@ def process_user_text(user_text: str):
         "model": st.session_state.selected_model,
         "time": resp_time,
     })
+    print('DEBUG: appended to conversation, total exchanges:', len(st.session_state.conversation))
+
+
+# If a transcript was posted from the demo iframe earlier, process it now
+if st.session_state.get('incoming_transcript'):
+    _trans = st.session_state.pop('incoming_transcript')
+    print('DEBUG: Processing incoming_transcript:', _trans[:100])
+    if _trans:
+        process_user_text(_trans)
+        # prepare pending response for the iframe to consume (reply text + audio)
+        audio_b64 = None
+        if st.session_state.get('last_voice_audio'):
+            audio_b64 = base64.b64encode(st.session_state.last_voice_audio).decode('utf-8')
+        # mark iframe as communicating
+        st.session_state['iframe_communicated'] = True
+        reply_text = st.session_state.get('last_spoken_reply', '')
+        st.session_state['pending_response'] = {
+            'reply': reply_text,
+            'audio_b64': audio_b64,
+            'tip': None,
+        }
+        print('DEBUG: Set pending_response with reply:', reply_text[:200], 'has audio:', bool(audio_b64))
+        st.experimental_rerun()
 
 
 def render_conversation_history(limit=None):
@@ -1094,9 +1830,13 @@ if current_screen == "Speak":
                 st.session_state.last_voice_audio = speech_to_audio_bytes(no_speech_reply)
                 st.session_state.response_time = 0
             else:
+                print('DEBUG: Calling process_user_text from Speak screen')
                 process_user_text(transcript)
-                st.rerun()
+                print('DEBUG: After process_user_text, last_spoken_reply:', st.session_state.get('last_spoken_reply', '')[:100])
+                # Don't rerun - display the response immediately in the current render
 
+    print('DEBUG: Speak screen rendering, last_spoken_reply:', st.session_state.get('last_spoken_reply', '')[:50] if st.session_state.get('last_spoken_reply') else 'empty')
+    
     if st.session_state.last_voice_audio:
         render_spoken_audio(st.session_state.last_voice_audio)
 
@@ -1152,8 +1892,10 @@ elif current_screen == "Chat":
 
     chat_text = st.chat_input("Send a message")
     if chat_text:
+        print('DEBUG: Chat text input received:', chat_text[:100])
         process_user_text(chat_text)
-        st.rerun()
+        print('DEBUG: After process_user_text, last_spoken_reply:', st.session_state.get('last_spoken_reply', '')[:100])
+        # Don't rerun - display the response immediately
 
 elif current_screen == "Learn":
     st.markdown(
